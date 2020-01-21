@@ -1,0 +1,37 @@
+{
+  "name": "acsv-sc",
+  "version": "1.0.0",
+  "description": "smart contracts truffle",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "ganache-cli": "^6.8.1",
+    "truffle-hdwallet-provider": "^1.0.17",
+    "web3": "^1.2.4"
+  },
+  "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.4",
+    "chai": "^4.2.0",
+    "prettier": "^1.18.2",
+    "prettier-plugin-solidity": "^1.0.0-alpha.34",
+    "solhint": "^2.3.0",
+    "solhint-plugin-prettier": "0.0.3"
+  },
+  "scripts": {
+    "test": "truffle test",
+    "format": "prettier --write contracts/**/*.sol",
+    "lint": "solhint contracts/**/*.sol"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JupiterChain/acsv.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JupiterChain/acsv/issues"
+  },
+  "homepage": "https://github.com/JupiterChain/acsv#readme"
+}
