@@ -5,7 +5,7 @@ contract InvoiceManager {
 
     struct invoiceInfo {
       uint256 bankNo;
-      address sender;
+      /* TO DO: add an address sender; */
       bytes32[] dataHash;
       uint256 status;
     }
@@ -104,7 +104,7 @@ contract InvoiceManager {
         return (sameBank, sameInvoice, invoiceIndex, numOfDuplicates);
     }
 
-    function checkDuplicatesStatus(duplicateInfo[] memory _allDuplicates, uint256[] memory _validStatus)
+    function onlyDuplicatesStatus(duplicateInfo[] memory _allDuplicates, uint256[] memory _validStatus)
         public
         view
         returns (bool)
@@ -126,6 +126,24 @@ contract InvoiceManager {
         return (statusesFound);
     }
 
+    function containDuplicatesStatus(duplicateInfo[] memory _allDuplicates, uint256[] memory _validStatus)
+        public
+        view
+        returns (bool)
+    {
+        bool statusFound = false;
+        for (uint256 i = 0; i < _allDuplicates.length; i++) {
+          for(uint256 j = 0; j < _validStatus.length; j++) {
+            if (getStatus(_allDuplicates[i].index) == _validStatus[j]) {
+              statusFound = true;
+              break;
+            }
+          }
+          if (statusFound) break;
+        }
+        return (statusFound);
+    }
+
     function approveInvoice(uint256 _bankNo, bytes32[] memory _dataHash, uint256 _timestamp)
         public
         returns (bool)
@@ -142,32 +160,16 @@ contract InvoiceManager {
 
         bool error = false;
 
-        # scenario 1
-        approve hello world 1 --> added and status 1
-        approve hello world 2 --> added, both status 4
-
-        # scenario 2
-        approve hello world 1 --> added and status 1
-        reverse hello world 1 --> reversed and status 3
-        approve hello world 1 --> status 1
-
-        # scenario 2
-        approve hello world 1 --> added and status 1
-        reverse hello world 1 --> reversed and status 3
-        approve hello world 1 --> status 1
-
-        # scenario 3
-        approve hello world 1 --> added and status 1
-        reverse hello world 1 --> reversed and status 3
-        approve hello world 2 --> added and status 1, other status 8
-        approve hello world 1 --> ADDED (wrong), both status 4
-
-        TO DO !!!have to change position of addInvoice function
-
-
-
+        /* TO DO: forced to init a dynamic array */
+        uint256[] memory tempArray123 = new uint256[](3);
+        tempArray123[0] = 1;
+        tempArray123[1] = 2;
+        tempArray123[2] = 3;
 
         if (sameInvoice) { // find same invoice hash
+
+          /* TO DO: check invoice status if valid */
+
             if (sameBank && numOfDuplicates == 0) {
               if (getStatus(invoiceIndex) == 3) {
                 setStatus(invoiceIndex, 1);
@@ -175,38 +177,70 @@ contract InvoiceManager {
                 /* TO DO: should return an error response */
                 error = true;
               }
-            } else {
+            } else if (numOfDuplicates == 1 && onlyDuplicatesStatus(allDuplicates, tempArray123)) {
               if(!sameBank) {
                 invoiceIndex = addInvoice(_bankNo, _dataHash, _timestamp);
               }
-              if (numOfDuplicates > 1) {
+              if (getStatus(allDuplicates[0].index) == 1) {
+                setStatus(invoiceIndex, 4);
+                setStatus(allDuplicates[0].index, 4);
+              } else if (getStatus(allDuplicates[0].index) == 2) {
+                setStatus(invoiceIndex, 5);
+                setStatus(allDuplicates[0].index, 6);
+              } else if (getStatus(allDuplicates[0].index) == 3) {
+                setStatus(invoiceIndex, 1);
+                setStatus(allDuplicates[0].index, 8);
+              } else {
+                /* TO DO: should return an error response */
+                error = true;
+              }
+            } else if (numOfDuplicates > 1) {
+                if(!sameBank) {
+                  invoiceIndex = addInvoice(_bankNo, _dataHash, _timestamp);
+                }
                 /* TO DO: forced to init a dynamic array */
                 uint256[] memory tempArray67 = new uint256[](2);
                 tempArray67[0] = 6;
                 tempArray67[1] = 7;
+                uint256[] memory tempArray2 = new uint256[](1);
+                tempArray2[0] = 2;
+                uint256[] memory tempArray1 = new uint256[](1);
+                tempArray1[0] = 1;
                 uint256[] memory tempArray4 = new uint256[](1);
                 tempArray4[0] = 4;
                 uint256[] memory tempArray8 = new uint256[](1);
                 tempArray8[0] = 8;
-                if (checkDuplicatesStatus(allDuplicates, tempArray67)) {
+                if (containDuplicatesStatus(allDuplicates, tempArray67)) {
                   setStatus(invoiceIndex, 5);
-                } else if (checkDuplicatesStatus(allDuplicates, tempArray4)) {
-                  setStatus(invoiceIndex, 4);
-                } else if (checkDuplicatesStatus(allDuplicates, tempArray8)) {
-                  setStatus(invoiceIndex, 1);
-                }
-              } else if (numOfDuplicates == 1) {
-                if (getStatus(allDuplicates[0].index) == 1) {
-                  setStatus(invoiceIndex, 4);
-                  setStatus(allDuplicates[0].index, 4);
-                } else if (getStatus(allDuplicates[0].index) == 2) {
+                } else if (containDuplicatesStatus(allDuplicates, tempArray2)) {
                   setStatus(invoiceIndex, 5);
-                  setStatus(allDuplicates[0].index, 6);
-                } else if (getStatus(allDuplicates[0].index) == 3) {
+                  for(uint256 i = 0; i < allDuplicates.length; i++) {
+                      if(getStatus(allDuplicates[i].index) == 2) {
+                          setStatus(allDuplicates[i].index, 6);
+                      }
+                      if(getStatus(allDuplicates[i].index) == 8) {
+                          setStatus(allDuplicates[i].index, 9);
+                      }
+                  }
+                  setStatus(invoiceIndex, 2);
+                } else if (containDuplicatesStatus(allDuplicates, tempArray1)) {
+                  setStatus(invoiceIndex, 4);
+                  for(uint256 i = 0; i < allDuplicates.length; i++) {
+                      if(getStatus(allDuplicates[i].index) == 1) {
+                          setStatus(allDuplicates[i].index, 4);
+                      }
+                  }
+                } else if (containDuplicatesStatus(allDuplicates, tempArray4)) {
+                  setStatus(invoiceIndex, 4);
+                } else if (onlyDuplicatesStatus(allDuplicates, tempArray8)) {
                   setStatus(invoiceIndex, 1);
-                  setStatus(allDuplicates[0].index, 8);
+                } else {
+                  /* TO DO: should return an error response */
+                  error = true;
                 }
-              }
+            } else {
+              /* TO DO: should return an error response */
+              error = true;
             }
         } else {
             setStatus(addInvoice(_bankNo, _dataHash, _timestamp), 1);
@@ -257,21 +291,21 @@ contract InvoiceManager {
               tempArray4[0] = 4;
               uint256[] memory tempArray8 = new uint256[](1);
               tempArray8[0] = 8;
-              if (checkDuplicatesStatus(allDuplicates, tempArray67)) {
+              if (onlyDuplicatesStatus(allDuplicates, tempArray67)) {
                 setStatus(invoiceIndex, 7);
                 for(uint256 i = 0; i < numOfDuplicates; i++) {
                     if (getStatus(allDuplicates[i].index) == 6) {
                       setStatus(allDuplicates[i].index, 7);
                     }
                 }
-              } else if (checkDuplicatesStatus(allDuplicates, tempArray4)) {
+              } else if (onlyDuplicatesStatus(allDuplicates, tempArray4)) {
                 setStatus(invoiceIndex, 6);
                 for(uint256 i = 0; i < numOfDuplicates; i++) {
                     if (getStatus(allDuplicates[i].index) == 4) {
                       setStatus(allDuplicates[i].index, 5);
                     }
                 }
-              } else if (checkDuplicatesStatus(allDuplicates, tempArray8)) {
+              } else if (onlyDuplicatesStatus(allDuplicates, tempArray8)) {
                 setStatus(invoiceIndex, 2);
               }
             }
@@ -325,11 +359,11 @@ contract InvoiceManager {
               tempArray4[0] = 4;
               uint256[] memory tempArray8 = new uint256[](1);
               tempArray8[0] = 8;
-              if (checkDuplicatesStatus(allDuplicates, tempArray67)) {
+              if (onlyDuplicatesStatus(allDuplicates, tempArray67)) {
                 setStatus(invoiceIndex, 9);
-              } else if (checkDuplicatesStatus(allDuplicates, tempArray4)) {
+              } else if (onlyDuplicatesStatus(allDuplicates, tempArray4)) {
                 setStatus(invoiceIndex, 8);
-              } else if (checkDuplicatesStatus(allDuplicates, tempArray8)) {
+              } else if (onlyDuplicatesStatus(allDuplicates, tempArray8)) {
                 setStatus(invoiceIndex, 8);
               }
             }
