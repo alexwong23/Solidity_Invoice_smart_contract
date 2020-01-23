@@ -1,6 +1,7 @@
 const addressJSON = require('./address.json');
 
 const Migrations = artifacts.require('../contracts/Migrations.sol');
+const InvoiceStorage = artifacts.require('../contracts/InvoiceStorage.sol');
 const InvoiceManager = artifacts.require('../contracts/InvoiceManager.sol');
 
 module.exports = function (deployer, network, accounts) {
@@ -8,9 +9,14 @@ module.exports = function (deployer, network, accounts) {
 
   deployer.deploy(Migrations)
     .then(async migrationInstance => {
-      const invoiceManager = await deployer.deploy(
-        InvoiceManager,
+      const storageInstance = await deployer.deploy(
+        InvoiceStorage,
         adminAddr
+      );
+      await deployer.deploy(
+        InvoiceManager,
+        adminAddr,
+        storageInstance.address
       );
     });
 };
