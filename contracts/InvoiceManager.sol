@@ -62,6 +62,14 @@ contract InvoiceManager {
         invoiceStorage[_invoiceID].status = _status;
     }
 
+    function findAndSetDuplicateStatus(duplicateInfo[] memory _allDuplicates, uint256 _prev_status, uint256 _new_status) public {
+        for(uint256 i = 0; i < _allDuplicates.length; i++) {
+            if(getStatus(_allDuplicates[i].index) == _prev_status) {
+                setStatus(_allDuplicates[i].index, _new_status);
+            }
+        }
+    }
+
     function addInvoice(uint256 _bankNo, bytes32[] memory _dataHash, uint256 _timestamp)
         public
         returns (uint256)
@@ -71,6 +79,17 @@ contract InvoiceManager {
         invoiceInfo memory newInvoice = invoiceInfo(_bankNo, _dataHash, 0);
         invoiceStorage[invoiceID] = newInvoice;
         return invoiceID;
+    }
+
+    function countDuplicateStatuses(duplicateInfo[] memory _allDuplicates)
+        internal view
+        returns (uint256[] memory)
+    {
+        uint256[] memory countStatus = new uint256[](11);
+        for (uint256 i = 0; i < _allDuplicates.length; i++) {
+            countStatus[getStatus(_allDuplicates[i].index)]++;
+        }
+        return countStatus;
     }
 
     /* finds exact match index, duplicate indexes and performs duplicate scoring */
@@ -87,7 +106,7 @@ contract InvoiceManager {
             /* // TO DO: scoring algorithm here */
             if (getDataHash(i)[0] == _dataHash[0] && getDataHash(i)[1] == _dataHash[1]) {
               sameInvoice = true;
-              if (invoiceStorage[i].bankNo == _bankNo) {
+              if (getBankNo(i) == _bankNo) {
                 invoiceIndex = i;
                 sameBank = true;
               } else {
@@ -126,24 +145,6 @@ contract InvoiceManager {
         return (statusesFound);
     }
 
-    function containDuplicatesStatus(duplicateInfo[] memory _allDuplicates, uint256[] memory _validStatus)
-        public
-        view
-        returns (bool)
-    {
-        bool statusFound = false;
-        for (uint256 i = 0; i < _allDuplicates.length; i++) {
-          for(uint256 j = 0; j < _validStatus.length; j++) {
-            if (getStatus(_allDuplicates[i].index) == _validStatus[j]) {
-              statusFound = true;
-              break;
-            }
-          }
-          if (statusFound) break;
-        }
-        return (statusFound);
-    }
-
     function approveInvoice(uint256 _bankNo, bytes32[] memory _dataHash, uint256 _timestamp)
         public
         returns (bool)
@@ -166,9 +167,9 @@ contract InvoiceManager {
         tempArray123[1] = 2;
         tempArray123[2] = 3;
 
-        if (sameInvoice) { // find same invoice hash
+        if (sameInvoice) {
 
-          /* TO DO: check invoice status if valid */
+            /* TO DO: check invoice status if valid */
 
             if (sameBank && numOfDuplicates == 0) {
               if (getStatus(invoiceIndex) == 3) {
@@ -178,7 +179,7 @@ contract InvoiceManager {
                 error = true;
               }
             } else if (numOfDuplicates == 1 && onlyDuplicatesStatus(allDuplicates, tempArray123)) {
-              if(!sameBank) {
+              if(!sameBank) { // TO DO: should not add if error!
                 invoiceIndex = addInvoice(_bankNo, _dataHash, _timestamp);
               }
               if (getStatus(allDuplicates[0].index) == 1) {
@@ -195,45 +196,25 @@ contract InvoiceManager {
                 error = true;
               }
             } else if (numOfDuplicates > 1) {
-                if(!sameBank) {
+                if(!sameBank) { // TO DO: should not add if error!
                   invoiceIndex = addInvoice(_bankNo, _dataHash, _timestamp);
                 }
-                /* TO DO: forced to init a dynamic array */
-                uint256[] memory tempArray67 = new uint256[](2);
-                tempArray67[0] = 6;
-                tempArray67[1] = 7;
-                uint256[] memory tempArray2 = new uint256[](1);
-                tempArray2[0] = 2;
-                uint256[] memory tempArray1 = new uint256[](1);
-                tempArray1[0] = 1;
-                uint256[] memory tempArray4 = new uint256[](1);
-                tempArray4[0] = 4;
-                uint256[] memory tempArray8 = new uint256[](1);
-                tempArray8[0] = 8;
-                if (containDuplicatesStatus(allDuplicates, tempArray67)) {
+                uint256[] memory countStatus = countDuplicateStatuses(allDuplicates);
+                if (countStatus[6] > 0 || countStatus[7] > 0) {
                   setStatus(invoiceIndex, 5);
-                } else if (containDuplicatesStatus(allDuplicates, tempArray2)) {
+                } else if (countStatus[2] > 0) {
                   setStatus(invoiceIndex, 5);
-                  for(uint256 i = 0; i < allDuplicates.length; i++) {
-                      if(getStatus(allDuplicates[i].index) == 2) {
-                          setStatus(allDuplicates[i].index, 6);
-                      }
-                      if(getStatus(allDuplicates[i].index) == 8) {
-                          setStatus(allDuplicates[i].index, 9);
-                      }
-                  }
-                  setStatus(invoiceIndex, 2);
-                } else if (containDuplicatesStatus(allDuplicates, tempArray1)) {
+                  findAndSetDuplicateStatus(allDuplicates, 2, 6);
+                } else if (countStatus[1] > 0) {
                   setStatus(invoiceIndex, 4);
-                  for(uint256 i = 0; i < allDuplicates.length; i++) {
-                      if(getStatus(allDuplicates[i].index) == 1) {
-                          setStatus(allDuplicates[i].index, 4);
-                      }
-                  }
-                } else if (containDuplicatesStatus(allDuplicates, tempArray4)) {
+                  findAndSetDuplicateStatus(allDuplicates, 1, 4);
+                } else if (countStatus[4] > 0) {
                   setStatus(invoiceIndex, 4);
-                } else if (onlyDuplicatesStatus(allDuplicates, tempArray8)) {
+                } else if (countStatus[8] == numOfDuplicates) { // only contains 8
                   setStatus(invoiceIndex, 1);
+                } else if (countStatus[3] == numOfDuplicates) { // only contains 3
+                  setStatus(invoiceIndex, 1);
+                  findAndSetDuplicateStatus(allDuplicates, 3, 8);
                 } else {
                   /* TO DO: should return an error response */
                   error = true;
@@ -281,32 +262,26 @@ contract InvoiceManager {
                 setStatus(allDuplicates[0].index, 7);
               } else if (getStatus(allDuplicates[0].index) == 8) {
                 setStatus(invoiceIndex, 2);
+                setStatus(allDuplicates[0].index, 9);
+              } else {
+                /* TO DO: should return an error response */
+                error = true;
               }
             } else if (numOfDuplicates > 1) {
-              /* TO DO: forced to init a dynamic array */
-              uint256[] memory tempArray67 = new uint256[](2);
-              tempArray67[0] = 6;
-              tempArray67[1] = 7;
-              uint256[] memory tempArray4 = new uint256[](1);
-              tempArray4[0] = 4;
-              uint256[] memory tempArray8 = new uint256[](1);
-              tempArray8[0] = 8;
-              if (onlyDuplicatesStatus(allDuplicates, tempArray67)) {
+              uint256[] memory countStatus = countDuplicateStatuses(allDuplicates);
+              if (countStatus[6] > 0 || countStatus[7] > 0) {
                 setStatus(invoiceIndex, 7);
-                for(uint256 i = 0; i < numOfDuplicates; i++) {
-                    if (getStatus(allDuplicates[i].index) == 6) {
-                      setStatus(allDuplicates[i].index, 7);
-                    }
-                }
-              } else if (onlyDuplicatesStatus(allDuplicates, tempArray4)) {
+                findAndSetDuplicateStatus(allDuplicates, 6, 7);
+              } else if (countStatus[4] > 0) {
                 setStatus(invoiceIndex, 6);
-                for(uint256 i = 0; i < numOfDuplicates; i++) {
-                    if (getStatus(allDuplicates[i].index) == 4) {
-                      setStatus(allDuplicates[i].index, 5);
-                    }
-                }
-              } else if (onlyDuplicatesStatus(allDuplicates, tempArray8)) {
+                findAndSetDuplicateStatus(allDuplicates, 4, 5);
+                findAndSetDuplicateStatus(allDuplicates, 8, 9);
+              } else if (countStatus[8] == numOfDuplicates) {
                 setStatus(invoiceIndex, 2);
+                findAndSetDuplicateStatus(allDuplicates, 8, 9);
+              } else {
+                /* TO DO: should return an error response */
+                error = true;
               }
             }
         } else {
@@ -348,23 +323,32 @@ contract InvoiceManager {
                 setStatus(invoiceIndex, 9);
                 setStatus(allDuplicates[0].index, 2);
               } else if (getStatus(allDuplicates[0].index) == 8) {
-                setStatus(invoiceIndex, 8);
+                setStatus(invoiceIndex, 3);
+                setStatus(allDuplicates[0].index, 3);
+              } else {
+                /* TO DO: should return an error response */
+                error = true;
               }
             } else if (numOfDuplicates > 1) {
-              /* TO DO: forced to init a dynamic array */
-              uint256[] memory tempArray67 = new uint256[](2);
-              tempArray67[0] = 6;
-              tempArray67[1] = 7;
-              uint256[] memory tempArray4 = new uint256[](1);
-              tempArray4[0] = 4;
-              uint256[] memory tempArray8 = new uint256[](1);
-              tempArray8[0] = 8;
-              if (onlyDuplicatesStatus(allDuplicates, tempArray67)) {
+              uint256[] memory countStatus = countDuplicateStatuses(allDuplicates);
+              if (countStatus[6] > 0 || countStatus[7] > 0) {
                 setStatus(invoiceIndex, 9);
-              } else if (onlyDuplicatesStatus(allDuplicates, tempArray4)) {
+                if (countDuplicateStatuses(allDuplicates)[5] < 1) {
+                  findAndSetDuplicateStatus(allDuplicates, 6, 2);
+                }
+              } else if (countStatus[4] > 0) {
                 setStatus(invoiceIndex, 8);
-              } else if (onlyDuplicatesStatus(allDuplicates, tempArray8)) {
-                setStatus(invoiceIndex, 8);
+                if (countDuplicateStatuses(allDuplicates)[4] == 1) {
+                  findAndSetDuplicateStatus(allDuplicates, 4, 1);
+                }
+              } else if (countStatus[8] == numOfDuplicates) {
+                setStatus(invoiceIndex, 3);
+                if (countDuplicateStatuses(allDuplicates)[1] < 1) {
+                  findAndSetDuplicateStatus(allDuplicates, 8, 3);
+                }
+              } else {
+                /* TO DO: should return an error response */
+                error = true;
               }
             }
         } else {

@@ -50,7 +50,6 @@ contract('Test InvoiceManager Contract', accounts => {
     assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
   });
 
-
   it('reverse existing approved invoice, no duplicates success', async () => {
     const manager = await InvoiceManager.deployed();
     assert.equal(await manager.getStatus(0), 1);
@@ -166,32 +165,336 @@ contract('Test InvoiceManager Contract', accounts => {
     assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
   });
 
-  it('approve same invoice and different bank, multiple status 4 duplicates success', async () => {
+  it('reverse approved invoice, one wrong status duplicate fail', async () => {
     const manager = await InvoiceManager.deployed();
-    await manager.approveInvoice(3, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.deepEqual(await manager.getDataHash(5), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(6), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
     assert.equal(await manager.getStatus(5), 4);
     assert.equal(await manager.getStatus(6), 4);
-    assert.equal(await manager.getStatus(7), 4);
-    assert.deepEqual(await manager.getDataHash(7), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
-    numOfInvoices++;
+    for (var i = 1; i <= 10; i++) {
+      if(i !== 4 && i !== 6 && i !== 8) {
+        await manager.setStatus(6, i);
+        await manager.reverseInvoice(1, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+        assert.equal(await manager.getStatus(5), 4);
+        assert.equal(await manager.getStatus(6), i);
+      }
+    }
+    await manager.setStatus(6, 4);
     assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
-
-    // await expectRevert(manager.useCode(
-    //   codeHashJSON.codeHashes[1],
-    //   { from: accounts[0] }
-    // ), 'only voting machine has access');
   });
 
-  // it('reverse approved invoice, one wrong status duplicate fail', async () => {
-  //   const manager = await InvoiceManager.deployed();
-  //   await manager.approveInvoice(1, [web3.utils.soliditySha3('second'), web3.utils.soliditySha3('wind')], 222);
-  //   assert.equal(await manager.getStatus(1), 1);
-  //   assert.deepEqual(await manager.getDataHash(1), [web3.utils.soliditySha3('second'), web3.utils.soliditySha3('wind')]);
-  //   numOfInvoices++;
-  //   for (var i = 4; i <= 10; i++) {
-  //     await manager.setStatus(1, i);
-  //     await manager.approveInvoice(2, [web3.utils.soliditySha3('second'), web3.utils.soliditySha3('wind')], 222);
-  //   }
-  //   assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
-  // });
+  it('finance approved invoice, one wrong status duplicate fail', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(5), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(6), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.equal(await manager.getStatus(5), 4);
+    assert.equal(await manager.getStatus(6), 4);
+    for (var i = 1; i <= 10; i++) {
+      if(i !== 4 && i !== 6 && i !== 8) {
+        await manager.setStatus(6, i);
+        await manager.financeInvoice(1, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+        assert.equal(await manager.getStatus(5), 4);
+        assert.equal(await manager.getStatus(6), i);
+      }
+    }
+    await manager.setStatus(6, 4);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('reverse approved invoice, one status 4 duplicate success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(5), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(6), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.equal(await manager.getStatus(5), 4);
+    assert.equal(await manager.getStatus(6), 4);
+    await manager.reverseInvoice(1, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.equal(await manager.getStatus(5), 8);
+    assert.equal(await manager.getStatus(6), 1);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('reverse approved invoice, one status 8 duplicate success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(5), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(6), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.equal(await manager.getStatus(5), 8);
+    assert.equal(await manager.getStatus(6), 1);
+    await manager.reverseInvoice(2, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.equal(await manager.getStatus(5), 3);
+    assert.equal(await manager.getStatus(6), 3);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('finance approved invoice, one status 8 duplicate success', async () => {
+    const manager = await InvoiceManager.deployed();
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.equal(await manager.getStatus(5), 8);
+    assert.equal(await manager.getStatus(6), 1);
+    assert.deepEqual(await manager.getDataHash(5), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(6), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    await manager.financeInvoice(2, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.equal(await manager.getStatus(5), 9);
+    assert.equal(await manager.getStatus(6), 2);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('finance approved invoice, one status 4 duplicate success', async () => {
+    const manager = await InvoiceManager.deployed();
+    await manager.approveInvoice(1, [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')], 222);
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')], 222);
+    await manager.financeInvoice(1, [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')], 222);
+    assert.equal(await manager.getStatus(7), 6);
+    assert.equal(await manager.getStatus(8), 5);
+    assert.deepEqual(await manager.getDataHash(7), [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')]);
+    assert.deepEqual(await manager.getDataHash(8), [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')]);
+    numOfInvoices += 2;
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('reverse approved invoice, one status 6 duplicate success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(7), [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')]);
+    assert.deepEqual(await manager.getDataHash(8), [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')]);
+    assert.equal(await manager.getStatus(7), 6);
+    assert.equal(await manager.getStatus(8), 5);
+    await manager.reverseInvoice(2, [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')], 222);
+    assert.equal(await manager.getStatus(7), 2);
+    assert.equal(await manager.getStatus(8), 9);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('finance approved invoice, one status 6 duplicate success', async () => {
+    const manager = await InvoiceManager.deployed();
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')], 222);
+    assert.equal(await manager.getStatus(7), 6);
+    assert.equal(await manager.getStatus(8), 5);
+    assert.deepEqual(await manager.getDataHash(7), [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')]);
+    assert.deepEqual(await manager.getDataHash(8), [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')]);
+    await manager.financeInvoice(2, [web3.utils.soliditySha3('fifth'), web3.utils.soliditySha3('force')], 222);
+    assert.equal(await manager.getStatus(7), 7);
+    assert.equal(await manager.getStatus(8), 7);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('approve same invoice and different bank, multiple duplicates status 6 success', async () => {
+    const manager = await InvoiceManager.deployed();
+    await manager.approveInvoice(1, [web3.utils.soliditySha3('sixth'), web3.utils.soliditySha3('sense')], 222);
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('sixth'), web3.utils.soliditySha3('sense')], 222);
+    await manager.financeInvoice(1, [web3.utils.soliditySha3('sixth'), web3.utils.soliditySha3('sense')], 222);
+    assert.equal(await manager.getStatus(9), 6);
+    assert.equal(await manager.getStatus(10), 5);
+    await manager.approveInvoice(3, [web3.utils.soliditySha3('sixth'), web3.utils.soliditySha3('sense')], 222);
+    assert.equal(await manager.getStatus(9), 6);
+    assert.equal(await manager.getStatus(10), 5);
+    assert.equal(await manager.getStatus(11), 5);
+    assert.deepEqual(await manager.getDataHash(9), [web3.utils.soliditySha3('sixth'), web3.utils.soliditySha3('sense')]);
+    assert.deepEqual(await manager.getDataHash(10), [web3.utils.soliditySha3('sixth'), web3.utils.soliditySha3('sense')]);
+    assert.deepEqual(await manager.getDataHash(11), [web3.utils.soliditySha3('sixth'), web3.utils.soliditySha3('sense')]);
+    numOfInvoices += 3;
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('approve same invoice and different bank, multiple duplicates status 2 success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(5), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(6), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.equal(await manager.getStatus(5), 9);
+    assert.equal(await manager.getStatus(6), 2);
+    await manager.approveInvoice(3, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.equal(await manager.getStatus(5), 9);
+    assert.equal(await manager.getStatus(6), 6);
+    assert.equal(await manager.getStatus(12), 5);
+    assert.deepEqual(await manager.getDataHash(5), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(6), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(12), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    numOfInvoices++;
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('reverse same invoice and same bank, multiple duplicates status 6 success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(5), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(6), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    assert.deepEqual(await manager.getDataHash(12), [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')]);
+    await manager.approveInvoice(1, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.equal(await manager.getStatus(5), 5);
+    assert.equal(await manager.getStatus(6), 6);
+    assert.equal(await manager.getStatus(12), 5);
+    await manager.reverseInvoice(1, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.equal(await manager.getStatus(5), 9);
+    assert.equal(await manager.getStatus(6), 6);
+    assert.equal(await manager.getStatus(12), 5);
+    await manager.reverseInvoice(3, [web3.utils.soliditySha3('fourth'), web3.utils.soliditySha3('amendment')], 222);
+    assert.equal(await manager.getStatus(5), 9);
+    assert.equal(await manager.getStatus(6), 2);
+    assert.equal(await manager.getStatus(12), 9);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('approve same invoice and different bank, multiple duplicates status 1 success', async () => {
+    const manager = await InvoiceManager.deployed();
+    await manager.approveInvoice(1, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    await manager.reverseInvoice(2, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    assert.equal(await manager.getStatus(13), 1);
+    assert.equal(await manager.getStatus(14), 8);
+    await manager.approveInvoice(3, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    assert.equal(await manager.getStatus(13), 4);
+    assert.equal(await manager.getStatus(14), 8);
+    assert.equal(await manager.getStatus(15), 4);
+    assert.deepEqual(await manager.getDataHash(13), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(14), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(15), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    numOfInvoices += 3;
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('approve same invoice and same bank, multiple duplicates status 4 success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(13), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(14), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(15), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.equal(await manager.getStatus(13), 4);
+    assert.equal(await manager.getStatus(14), 8);
+    assert.equal(await manager.getStatus(15), 4);
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    assert.equal(await manager.getStatus(13), 4);
+    assert.equal(await manager.getStatus(14), 4);
+    assert.equal(await manager.getStatus(15), 4);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('reverse same invoice and same bank, multiple duplicates status 4 success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(13), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(14), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(15), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.equal(await manager.getStatus(13), 4);
+    assert.equal(await manager.getStatus(14), 4);
+    assert.equal(await manager.getStatus(15), 4);
+    await manager.reverseInvoice(1, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    assert.equal(await manager.getStatus(13), 8);
+    assert.equal(await manager.getStatus(14), 4);
+    assert.equal(await manager.getStatus(15), 4);
+    await manager.reverseInvoice(2, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    assert.equal(await manager.getStatus(13), 8);
+    assert.equal(await manager.getStatus(14), 8);
+    assert.equal(await manager.getStatus(15), 1);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('reverse same invoice and same bank, multiple duplicates status 8 ONLY success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(13), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(14), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(15), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.equal(await manager.getStatus(13), 8);
+    assert.equal(await manager.getStatus(14), 8);
+    assert.equal(await manager.getStatus(15), 1);
+    await manager.reverseInvoice(3, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    assert.equal(await manager.getStatus(13), 3);
+    assert.equal(await manager.getStatus(14), 3);
+    assert.equal(await manager.getStatus(15), 3);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('approve same invoice and different bank, multiple duplicates status 3 ONLY success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(13), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(14), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(15), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.equal(await manager.getStatus(13), 3);
+    assert.equal(await manager.getStatus(14), 3);
+    assert.equal(await manager.getStatus(15), 3);
+    await manager.approveInvoice(1, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    assert.equal(await manager.getStatus(13), 1);
+    assert.equal(await manager.getStatus(14), 8);
+    assert.equal(await manager.getStatus(15), 8);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('approve same invoice and different bank, multiple duplicates status 8 ONLY success', async () => {
+    const manager = await InvoiceManager.deployed();
+    await manager.approveInvoice(1, [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')], 222);
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')], 222);
+    assert.equal(await manager.getStatus(16), 4);
+    assert.equal(await manager.getStatus(17), 4);
+    await manager.approveInvoice(3, [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')], 222);
+    assert.equal(await manager.getStatus(16), 4);
+    assert.equal(await manager.getStatus(17), 4);
+    assert.equal(await manager.getStatus(18), 4);
+    assert.deepEqual(await manager.getDataHash(16), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    assert.deepEqual(await manager.getDataHash(17), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    assert.deepEqual(await manager.getDataHash(18), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    numOfInvoices += 3;
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('finance same invoice and same bank, multiple duplicates status 4 success', async () => {
+    const manager = await InvoiceManager.deployed();
+    await manager.approveInvoice(1, [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')], 222);
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')], 222);
+    await manager.approveInvoice(3, [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')], 222);
+    assert.deepEqual(await manager.getDataHash(19), [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')]);
+    assert.deepEqual(await manager.getDataHash(20), [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')]);
+    assert.deepEqual(await manager.getDataHash(21), [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')]);
+    assert.equal(await manager.getStatus(19), 4);
+    assert.equal(await manager.getStatus(20), 4);
+    assert.equal(await manager.getStatus(21), 4);
+    await manager.reverseInvoice(1, [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')], 222);
+    assert.equal(await manager.getStatus(19), 8);
+    assert.equal(await manager.getStatus(20), 4);
+    assert.equal(await manager.getStatus(21), 4);
+    await manager.financeInvoice(2, [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')], 222);
+    assert.equal(await manager.getStatus(19), 9);
+    assert.equal(await manager.getStatus(20), 6);
+    assert.equal(await manager.getStatus(21), 5);
+    numOfInvoices += 3;
+    assert.deepEqual(await manager.getDataHash(16), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    assert.deepEqual(await manager.getDataHash(17), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    assert.deepEqual(await manager.getDataHash(18), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    assert.equal(await manager.getStatus(16), 4);
+    assert.equal(await manager.getStatus(17), 4);
+    assert.equal(await manager.getStatus(18), 4);
+    await manager.financeInvoice(1, [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')], 222);
+    assert.equal(await manager.getStatus(16), 6);
+    assert.equal(await manager.getStatus(17), 5);
+    assert.equal(await manager.getStatus(18), 5);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('finance same invoice and same bank, multiple duplicates status 7 success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(16), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    assert.deepEqual(await manager.getDataHash(17), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    assert.deepEqual(await manager.getDataHash(18), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
+    assert.equal(await manager.getStatus(16), 6);
+    assert.equal(await manager.getStatus(17), 5);
+    assert.equal(await manager.getStatus(18), 5);
+    await manager.financeInvoice(2, [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')], 222);
+    assert.equal(await manager.getStatus(16), 7);
+    assert.equal(await manager.getStatus(17), 7);
+    assert.equal(await manager.getStatus(18), 5);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('finance same invoice and same bank, multiple duplicates status 8 ONLY success', async () => {
+    const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await manager.getDataHash(13), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(14), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.deepEqual(await manager.getDataHash(15), [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')]);
+    assert.equal(await manager.getStatus(13), 1);
+    assert.equal(await manager.getStatus(14), 8);
+    assert.equal(await manager.getStatus(15), 8);
+    await manager.financeInvoice(1, [web3.utils.soliditySha3('seventh'), web3.utils.soliditySha3('heaven')], 222);
+    assert.equal(await manager.getStatus(13), 2);
+    assert.equal(await manager.getStatus(14), 9);
+    assert.equal(await manager.getStatus(15), 9);
+    assert.equal((await manager.getNumOfInvoices()), numOfInvoices);
+  });
+
+  // await expectRevert(manager.useCode(
+  //   codeHashJSON.codeHashes[1],
+  //   { from: accounts[0] }
+  // ), 'only voting machine has access');
 });
