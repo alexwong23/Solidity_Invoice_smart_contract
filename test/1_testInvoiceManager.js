@@ -18,12 +18,18 @@ contract('Test InvoiceManager Contract', accounts => {
     assert.equal((await storage.getNumOfInvoices()), numOfInvoices);
   });
 
-  it('approve same invoice and same bank, no duplicates fail', async () => {
+  it('approve same invoice and same bank bad status, no duplicates fail', async () => {
     const storage = await InvoiceStorage.deployed();
     const manager = await InvoiceManager.deployed();
     assert.equal(await storage.getStatus(0), 1);
-    await manager.approveInvoice(1, [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')], 222);
-    assert.equal(await storage.getStatus(0), 1);
+    for (var i = 1; i <= 10; i++) {
+      if (i !== 3) {
+        await storage.setStatus(0, i);
+        await manager.approveInvoice(1, [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')], 222);
+        assert.notEqual(await storage.getStatus(0), 3);
+      }
+    }
+    await storage.setStatus(0, 1);
     assert.equal((await storage.getNumOfInvoices()), numOfInvoices);
   });
 
@@ -38,11 +44,11 @@ contract('Test InvoiceManager Contract', accounts => {
     const storage = await InvoiceStorage.deployed();
     const manager = await InvoiceManager.deployed();
     assert.equal(await storage.getStatus(0), 1);
-    for (var i = 2; i <= 10; i++) {
-      if (i !== 3) {
+    for (var i = 1; i <= 10; i++) {
+      if (i !== 1) {
         await storage.setStatus(0, i);
         await manager.reverseInvoice(1, [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')], 222);
-        assert.notEqual(await storage.getStatus(0), 3);
+        assert.equal(await storage.getStatus(0), i);
       }
     }
     await storage.setStatus(0, 1);
@@ -61,15 +67,15 @@ contract('Test InvoiceManager Contract', accounts => {
   it('approve existing not reversed invoice, no duplicates fail', async () => {
     const storage = await InvoiceStorage.deployed();
     const manager = await InvoiceManager.deployed();
+    assert.deepEqual(await storage.getDataHash(0), [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')]);
     for (var i = 2; i <= 10; i++) {
       if (i !== 3) {
         await storage.setStatus(0, i);
         await manager.approveInvoice(1, [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')], 222);
-        assert.notEqual(await storage.getStatus(0), 1);
+        assert.equal(await storage.getStatus(0), i);
       }
     }
     await storage.setStatus(0, 3);
-    assert.deepEqual(await storage.getDataHash(0), [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')]);
     assert.equal((await storage.getNumOfInvoices()), numOfInvoices);
   });
 
@@ -94,10 +100,12 @@ contract('Test InvoiceManager Contract', accounts => {
     const storage = await InvoiceStorage.deployed();
     const manager = await InvoiceManager.deployed();
     assert.equal(await storage.getStatus(0), 1);
-    for (var i = 3; i <= 10; i++) {
-      await storage.setStatus(0, i);
-      await manager.financeInvoice(1, [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')], 222);
-      assert.notEqual(await storage.getStatus(0), 2);
+    for (var i = 2; i <= 10; i++) {
+      if (i !== 1) {
+        await storage.setStatus(0, i);
+        await manager.financeInvoice(1, [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')], 222);
+        assert.equal(await storage.getStatus(0), i);
+      }
     }
     await storage.setStatus(0, 1);
     assert.equal((await storage.getNumOfInvoices()), numOfInvoices);
@@ -123,6 +131,7 @@ contract('Test InvoiceManager Contract', accounts => {
       await storage.setStatus(1, i);
       await manager.approveInvoice(2, [web3.utils.soliditySha3('second'), web3.utils.soliditySha3('wind')], 222);
     }
+    await storage.setStatus(1, 1);
     assert.equal((await storage.getNumOfInvoices()), numOfInvoices);
   });
 
