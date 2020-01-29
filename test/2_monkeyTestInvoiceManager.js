@@ -14,7 +14,7 @@ contract('Monkey Test InvoiceManager Contract', accounts => {
     await manager.approveInvoice(0, [web3.utils.soliditySha3('hello'), web3.utils.soliditySha3('world')], 222);
     let numOfInvoices = 1;
     var index;
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 30; i++) {
       switch (getRandomInt(4)) {
         case 0:
           index = getRandomInt(numOfInvoices);
