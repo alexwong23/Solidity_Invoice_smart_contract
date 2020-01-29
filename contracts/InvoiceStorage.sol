@@ -5,7 +5,7 @@ contract InvoiceStorage {
 
     struct invoiceInfo {
       uint256 bankNo;
-      /* TO DO: add an address sender; */
+      address sender;
       bytes32[] dataHash;
       uint256 status;
     }
@@ -56,14 +56,21 @@ contract InvoiceStorage {
         invoiceStorage[_invoiceID].status = _status;
     }
 
-    function addInvoice(uint256 _bankNo, bytes32[] memory _dataHash, uint256 _timestamp)
+    function addInvoice(uint256 _bankNo, address sender, bytes32[] memory _dataHash, uint256 _timestamp)
         public
         returns (uint256)
     {
         uint256 invoiceID = numOfInvoices;
         numOfInvoices++;
-        invoiceInfo memory newInvoice = invoiceInfo(_bankNo, _dataHash, 0);
+        invoiceInfo memory newInvoice = invoiceInfo(_bankNo, sender, _dataHash, 0);
         invoiceStorage[invoiceID] = newInvoice;
         return invoiceID;
+    }
+
+    function removeInvoice(uint256 invoiceIndex) public {
+        for(uint256 i = invoiceIndex; i < numOfInvoices; i++) {
+            invoiceStorage[i] = invoiceStorage[i + 1];
+        }
+        numOfInvoices--;
     }
 }

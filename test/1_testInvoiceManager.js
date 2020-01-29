@@ -477,7 +477,12 @@ contract('Test InvoiceManager Contract', accounts => {
     assert.equal(await storage.getStatus(19), 9);
     assert.equal(await storage.getStatus(20), 6);
     assert.equal(await storage.getStatus(21), 5);
+    await manager.financeInvoice(1, [web3.utils.soliditySha3('ninth'), web3.utils.soliditySha3('cloud')], 222);
+    assert.equal(await storage.getStatus(19), 9);
+    assert.equal(await storage.getStatus(20), 6);
+    assert.equal(await storage.getStatus(21), 5);
     numOfInvoices += 3;
+
     assert.deepEqual(await storage.getDataHash(16), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
     assert.deepEqual(await storage.getDataHash(17), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
     assert.deepEqual(await storage.getDataHash(18), [web3.utils.soliditySha3('eighth'), web3.utils.soliditySha3('gate')]);
@@ -520,6 +525,20 @@ contract('Test InvoiceManager Contract', accounts => {
     assert.equal(await storage.getStatus(13), 2);
     assert.equal(await storage.getStatus(14), 9);
     assert.equal(await storage.getStatus(15), 9);
+    assert.equal((await storage.getNumOfInvoices()), numOfInvoices);
+  });
+
+  it('approve same invoice and same bank, multiple duplicates bad status (does not add invoice) fail', async () => {
+    const storage = await InvoiceStorage.deployed();
+    const manager = await InvoiceManager.deployed();
+    await manager.approveInvoice(1, [web3.utils.soliditySha3('tenth'), web3.utils.soliditySha3('hen')], 222);
+    await manager.approveInvoice(2, [web3.utils.soliditySha3('tenth'), web3.utils.soliditySha3('hen')], 222);
+    await storage.setStatus(22, 9);
+    await storage.setStatus(23, 9);
+    await manager.approveInvoice(3, [web3.utils.soliditySha3('tenth'), web3.utils.soliditySha3('hen')], 222);
+    assert.equal(await storage.getStatus(22), 9);
+    assert.equal(await storage.getStatus(23), 9);
+    numOfInvoices += 2;
     assert.equal((await storage.getNumOfInvoices()), numOfInvoices);
   });
 
