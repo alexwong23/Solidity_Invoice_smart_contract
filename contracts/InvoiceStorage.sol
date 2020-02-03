@@ -8,6 +8,8 @@ contract InvoiceStorage {
       address sender;
       bytes32[] dataHash;
       uint256 status;
+      uint256 numOfHistory;
+      mapping(uint256 => string) private history;
     }
 
     mapping(uint256 => invoiceInfo) public invoiceStorage;
@@ -22,6 +24,7 @@ contract InvoiceStorage {
         adminAddress = _adminAddress;
         owner = msg.sender;
         numOfInvoices = 0;
+        numOfHistory = 0;
     }
 
     /* prepend a check that function is called by admin address */
@@ -52,18 +55,33 @@ contract InvoiceStorage {
         return invoiceStorage[_invoiceID].status;
     }
 
+    function getHistory() public view returns (string[] memory) {
+        return history;
+    }
+
     function setStatus(uint256 _invoiceID, uint256 _status) public {
         invoiceStorage[_invoiceID].status = _status;
+    }
+
+    function addHistory(uint256 _invoiceID, string _message, uint256 _timestamp)
+        public
+        returns (bool)
+    {
+        uint256 histID = numOfHistory++;
+        invoiceInfo memory newInvoice = invoiceInfo(_bankNo, sender, _dataHash, 0);
+        invoiceStorage[histID] = newInvoice;
+        addHistory(histID, 'Invoice created', _timestamp);
+        return histID;
     }
 
     function addInvoice(uint256 _bankNo, address sender, bytes32[] memory _dataHash, uint256 _timestamp)
         public
         returns (uint256)
     {
-        uint256 invoiceID = numOfInvoices;
-        numOfInvoices++;
+        uint256 invoiceID = numOfInvoices++;
         invoiceInfo memory newInvoice = invoiceInfo(_bankNo, sender, _dataHash, 0);
         invoiceStorage[invoiceID] = newInvoice;
+        addHistory(invoiceID, 'Invoice created', _timestamp);
         return invoiceID;
     }
 
