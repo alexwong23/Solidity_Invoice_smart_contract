@@ -153,7 +153,7 @@ contract InvoiceManager {
                         findAndSetDuplicateStatus(allDuplicates, 1, 4);
                     } else if (countStatus[4] > 0) {
                         invoiceStorage.setStatus(invoiceIndex, 4);
-                    }   else if (countStatus[8] == numOfDuplicates) { // only contains 8
+                    }   else if (countStatus[8] == numOfDuplicates) { // TO DO: should never occur
                         invoiceStorage.setStatus(invoiceIndex, 1);
                     }   else if (countStatus[3] == numOfDuplicates) { // only contains 3
                         invoiceStorage.setStatus(invoiceIndex, 1);
